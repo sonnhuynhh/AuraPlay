@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserOwnedGameId implements Serializable {
+    // serialVersionUID là mã định danh của phiên bản lớp
+    private static final long serialVersionUID = 1L;
+
     private UUID userId;
     private Integer gameId;
 }

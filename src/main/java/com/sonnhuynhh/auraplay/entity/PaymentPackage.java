@@ -2,16 +2,12 @@ package com.sonnhuynhh.auraplay.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -21,33 +17,35 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "payment_transactions")
+@Table(name = "payment_packages")
 @Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class PaymentTransaction {
+public class PaymentPackage {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "name_en")
+    private String nameEn;
 
-    @Column(name = "fiat_amount", nullable = false, precision = 15, scale = 2)
-    private BigDecimal fiatAmount;
+    @Column(name = "name_vi")
+    private String nameVi;
 
     @Column(name = "aura_reward", nullable = false)
     private Long auraReward;
 
-    @Column(name = "payment_method", nullable = false)
-    private String paymentMethod; // momo, bank
+    @Column(name = "price_vnd", nullable = false, precision = 15, scale = 2)
+    private BigDecimal priceVnd;
 
-    @Column(name = "status", nullable = false)
-    private String status = "PENDING"; // PENDING, SUCCESS, FAILED
+    @Column(name = "price_usd", nullable = false, precision = 10, scale = 2)
+    private BigDecimal priceUsd;
 
-    @Column(name = "transaction_code", unique = true)
-    private String transactionCode;
+    @Column(name = "bonus_percentage")
+    private Integer bonusPercentage;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
