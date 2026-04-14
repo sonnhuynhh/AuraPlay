@@ -25,7 +25,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.csrf(csrf -> csrf.disable()) // Tắt bảo vệ CSRF (thường tắt khi làm REST API dùng Token)
                     .authorizeHttpRequests(request -> request // Cấu hình đường dẫn nào bị khóa, đường dẫn nào được thả
-                        .requestMatchers(HttpMethod.POST, "/users").permitAll() // Cho phép gọi API đăng ký (POST /users) mà không cần đăng nhập
+                        .requestMatchers(HttpMethod.POST, "/users", "/auth/login").permitAll() // Cho phép gọi API đăng ký (POST /users) và đăng nhập (POST /auth/login) mà không cần đăng nhập
                         .anyRequest().authenticated()); // Bất kỳ API nào khác đều phải đăng nhập
 
         return httpSecurity.build();
