@@ -38,4 +38,19 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
     }
+
+    // 3. Bắt các lỗi do người dùng nhập liệu sai (Validation Exception)
+    @ExceptionHandler(value = org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handlingValidation(org.springframework.web.bind.MethodArgumentNotValidException exception) {
+        
+        // Trích xuất lấy đúng cái câu chữ mà chúng ta đã cấu hình trong DTO
+        // VD: "Username cannot be blank" hay "Password must be as least 6 characters"
+        String errorMessage = exception.getFieldError().getDefaultMessage();
+
+        // 400 là mã lỗi thường quy ước cho những lỗi nhập sai từ Frontend
+        ApiResponse<Void> apiResponse = ApiResponse.error(400, errorMessage);
+
+        // badRequest tương đương HTTP Status Code 400
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
 }
