@@ -12,6 +12,9 @@ import com.sonnhuynhh.auraplay.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 // Đánh dấu đây là nơi tiếp nhận Request từ Internet
 @RestController
@@ -36,4 +39,10 @@ public class UserController {
         // Đóng gói kết quả (UserResponse) vào khung chuẩn ApiResponse rồi trả về
         return ApiResponse.success(result);
     }
+
+    @GetMapping("/test")
+    public ApiResponse<String> testToken() {
+        return ApiResponse.success("Wow! Token xịn! Bạn đã vượt qua chốt gác thành công!");
+    }
+    
 }
