@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.sonnhuynhh.auraplay.dto.request.UserCreationRequest;
+import com.sonnhuynhh.auraplay.dto.request.UserUpdateRequest;
 import com.sonnhuynhh.auraplay.dto.response.UserResponse;
 import com.sonnhuynhh.auraplay.entity.User;
 import com.sonnhuynhh.auraplay.exception.AppException;
@@ -49,56 +50,62 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         // MAPPING: Từ User (Entity) mới lưu -> UserResponse (DTO) để trả về cho client
-        return UserResponse.builder()
-                .id(savedUser.getId())
-                .username(savedUser.getUsername())
-                .email(savedUser.getEmail())
-                .auraBalance(savedUser.getAuraBalance())
-                .role(savedUser.getRole())
-                .build();
+        return toUserResponse(savedUser);
     }
 
     // Lấy tất cả user
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll()
+                // Chuyển List thành Stream để xử lý
+                .stream()
+                // Từng User được chuyển đổi
+                .map(this::toUserResponse)
+                // Chuyển Stream -> List
+                .toList();
     }
 
     // Lấy user theo id
-    public Optional<User> getUserById(UUID id) {
-        return userRepository.findById(id);
+    public UserResponse getUserById(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        return toUserResponse(user);
     }
 
     // Lấy user theo username (dùng cho Login/Auth)
-    public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
+    public UserResponse getUserByUsername(String username) {
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        
+        return toUserResponse(user);
     }
 
     // Cập nhật thông tin user (chỉ update các field cho phép)
     @Transactional
-    public User updateUser(UUID id, User updatedData) {
+    public UserResponse updateUser(UUID id, UserUpdateRequest request) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
         // Chỉ cập nhật các field cho phép, giữ nguyên password, auraBalance, role
-        if (updatedData.getUsername() != null) {
+        if (request.getUsername() != null) {
             // Kiểm tra username mới không trùng với user khác
-            if (!existingUser.getUsername().equals(updatedData.getUsername())
-                    && userRepository.existsByUsername(updatedData.getUsername())) {
+            if (!existingUser.getUsername().equals(request.getUsername())
+                    && userRepository.existsByUsername(request.getUsername())) {
                 throw new AppException(ErrorCode.USERNAME_EXISTED);
             }
-            existingUser.setUsername(updatedData.getUsername());
+            existingUser.setUsername(request.getUsername());
         }
-        if (updatedData.getEmail() != null) {
+        if (request.getEmail() != null) {
             // Kiểm tra email mới không trùng với user khác
-            if (!existingUser.getEmail().equals(updatedData.getEmail())
-                    && userRepository.existsByEmail(updatedData.getEmail())) {
+            if (!existingUser.getEmail().equals(request.getEmail())
+                    && userRepository.existsByEmail(request.getEmail())) {
                 throw new AppException(ErrorCode.EMAIL_EXISTED);
             }
-            existingUser.setEmail(updatedData.getEmail());
+            existingUser.setEmail(request.getEmail());
         }
 
-        return userRepository.save(existingUser);
+        User savedUser = userRepository.save(existingUser);
+        return toUserResponse(savedUser);
     }
 
     // Đổi mật khẩu
@@ -122,5 +129,16 @@ public class UserService {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
         userRepository.deleteById(id);
+    }
+
+    // Hàm tiện ích: chuyển entity User thành UserResponse DTO
+    private UserResponse toUserResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .auraBalance(user.getAuraBalance())
+                .role(user.getRole())
+                .build();
     }
 }

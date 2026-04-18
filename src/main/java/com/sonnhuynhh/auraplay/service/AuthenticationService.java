@@ -82,4 +82,14 @@ public class AuthenticationService {
             return false; // Quét thất bại, Token lỏ
         }
     }
+
+    public String extractUsername(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(SIGNER_KEY.getBytes())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                // Lấy giá trị đã setSubject lúc tạo token
+                .getSubject();
+    }
 }

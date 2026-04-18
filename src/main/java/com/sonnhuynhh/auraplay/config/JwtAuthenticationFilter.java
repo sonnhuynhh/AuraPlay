@@ -32,9 +32,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         // Kiểm tra xem token có hợp lệ không
         if (StringUtils.hasText(jwtToken) && authenticationService.introspect(jwtToken)) {
+            // Trích xuất username từ Token (setSubject lúc tạo Token)
+            String username = authenticationService.extractUsername(jwtToken);
+            
             // Tạo ra một "bản sao" của token để đưa vào Security Context
             // (Lưu ý: Ở đây ta chưa có User cụ thể, nên tạm để null)
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(null, null, null);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(username, null, java.util.Collections.emptyList());
+            
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
