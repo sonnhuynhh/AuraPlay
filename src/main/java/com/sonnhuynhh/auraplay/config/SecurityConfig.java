@@ -28,6 +28,8 @@ public class SecurityConfig {
                     .authorizeHttpRequests(request -> request
                         // Cho phép gọi API đăng ký (POST /users) và đăng nhập (POST /auth/login) mà không cần đăng nhập
                         .requestMatchers(HttpMethod.POST, "/users", "/auth/login").permitAll()
+                        // Cho phép gọi API lấy danh sách game (GET /games) và lấy game theo id (GET /games/{id}) mà không cần đăng nhập
+                        .requestMatchers(HttpMethod.GET, "/games", "/games/{id}").permitAll()
                         // Bất kỳ API nào khác đều phải đăng nhập
                         .anyRequest().authenticated())
                         // Thêm JwtAuthenticationFilter vào chuỗi Filter của Spring Security
