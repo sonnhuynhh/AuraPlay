@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.sonnhuynhh.auraplay.dto.response.PaymentTransactionResponse;
 import com.sonnhuynhh.auraplay.entity.PaymentPackage;
 import com.sonnhuynhh.auraplay.entity.PaymentTransaction;
 import com.sonnhuynhh.auraplay.entity.User;
@@ -27,7 +28,7 @@ public class PaymentService {
 
     // Tạo yêu cầu thanh toán (giao dịch PENDING)
     @Transactional
-    public PaymentTransaction createPaymentRequest(UUID userId, Integer packageId, String currency, String transCode, String paymentMethod) {
+    public PaymentTransactionResponse createPaymentRequest(UUID userId, Integer packageId, String currency, String paymentMethod) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
@@ -39,28 +40,27 @@ public class PaymentService {
             throw new AppException(ErrorCode.PACKAGE_INACTIVE);
         }
 
-        // Kiểm tra giao dịch đã tồn tại chưa
-        if (paymentTransactionRepository.existsByTransactionCode(transCode)) {
-            throw new AppException(ErrorCode.TRANSACTION_EXISTED);
-        }
-
         // Lấy số tiền thật (fiat) dựa trên loại tiền tệ
         BigDecimal fiatAmount = "USD".equals(currency) ? pkg.getPriceUsd() : pkg.getPriceVnd();
 
+        // Tự sinh mã giao dịch
+        String transCode = "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         // Tạo giao dịch PENDING
-        PaymentTransaction paymentTransaction = new PaymentTransaction();
-        paymentTransaction.setUser(user);
-        paymentTransaction.setFiatAmount(fiatAmount); // Số tiền thật (VND/USD)
-        paymentTransaction.setAuraReward(pkg.getAuraReward()); // Lượng Aura sẽ nhận
-        paymentTransaction.setPaymentMethod(paymentMethod); // Phương thức thanh toán
-        paymentTransaction.setStatus("PENDING"); // Trạng thái giao dịch
-        paymentTransaction.setTransactionCode(transCode); // Mã giao dịch
-        return paymentTransactionRepository.save(paymentTransaction);
+        PaymentTransaction transaction = new PaymentTransaction();
+        transaction.setUser(user);
+        transaction.setFiatAmount(fiatAmount); // Số tiền thật (VND/USD)
+        transaction.setAuraReward(pkg.getAuraReward()); // Lượng Aura sẽ nhận
+        transaction.setPaymentMethod(paymentMethod); // Phương thức thanh toán
+        transaction.setStatus("PENDING"); // Trạng thái giao dịch
+        transaction.setTransactionCode(transCode); // Mã giao dịch
+        
+        return toResponse(paymentTransactionRepository.save(transaction));
     }
 
     // Hoàn tất thanh toán — cộng Aura cho user
     @Transactional
-    public void completePayment(String transCode) {
+    public PaymentTransactionResponse completePayment(String transCode) {
         PaymentTransaction transaction = paymentTransactionRepository.findByTransactionCode(transCode)
                 .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND));
 
@@ -75,11 +75,13 @@ public class PaymentService {
         User user = transaction.getUser();
         user.setAuraBalance(user.getAuraBalance() + transaction.getAuraReward());
         userRepository.save(user);
+
+        return toResponse(transaction);
     }
 
     // Hủy giao dịch khi thanh toán thất bại
     @Transactional
-    public void failPayment(String transCode) {
+    public PaymentTransactionResponse failPayment(String transCode) {
         PaymentTransaction transaction = paymentTransactionRepository.findByTransactionCode(transCode)
                 .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND));
 
@@ -89,18 +91,40 @@ public class PaymentService {
 
         transaction.setStatus("FAILED");
         paymentTransactionRepository.save(transaction);
+
+        return toResponse(transaction);
     }
 
     // Lấy lịch sử giao dịch của user
-    public List<PaymentTransaction> getPaymentHistory(UUID userId) {
+    public List<PaymentTransactionResponse> getPaymentHistory(UUID userId) {
         if (!userRepository.existsById(userId)) {
             throw new AppException(ErrorCode.USER_NOT_FOUND);
         }
-        return paymentTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        return paymentTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     // Lấy tất cả giao dịch theo trạng thái (dành cho Admin)
-    public List<PaymentTransaction> getTransactionsByStatus(String status) {
-        return paymentTransactionRepository.findByStatusOrderByCreatedAtDesc(status);
+    public List<PaymentTransactionResponse> getTransactionsByStatus(String status) {
+        return paymentTransactionRepository.findByStatusOrderByCreatedAtDesc(status)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    // Hàm tiện ích: Entity -> DTO
+    private PaymentTransactionResponse toResponse(PaymentTransaction transaction) {
+        return PaymentTransactionResponse.builder()
+                .id(transaction.getId())
+                .fiatAmount(transaction.getFiatAmount())
+                .auraReward(transaction.getAuraReward())
+                .paymentMethod(transaction.getPaymentMethod())
+                .status(transaction.getStatus())
+                .transactionCode(transaction.getTransactionCode())
+                .createdAt(transaction.getCreatedAt())
+                .updatedAt(transaction.getUpdatedAt())
+                .build();
     }
 }
